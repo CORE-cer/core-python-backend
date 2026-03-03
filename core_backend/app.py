@@ -64,4 +64,4 @@ app.add_middleware(
 
 app.include_router(query_router)
 app.include_router(stream_router)
-app.include_router(ws_router)
+app.include_router(ws_router, prefix="/ws")
