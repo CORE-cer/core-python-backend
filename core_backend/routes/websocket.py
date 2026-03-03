@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 if TYPE_CHECKING:
     from core_backend.engine import CoreEngine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -29,5 +32,7 @@ async def websocket_endpoint(websocket: WebSocket, query_id: int):
             await websocket.send_json(result)
     except WebSocketDisconnect:
         pass
+    except Exception:
+        logger.exception("WebSocket error for query_id=%d", query_id)
     finally:
         _engine.unsubscribe_client(query_id, queue)

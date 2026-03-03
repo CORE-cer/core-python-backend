@@ -39,6 +39,8 @@ class CoreEngine:
         self._next_query_id: int = 0
         self._result_queues: dict[int, list[asyncio.Queue]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._event_to_stream: dict[int, int] = {}
+        self._event_to_name: dict[int, str] = {}
 
     @property
     def stream_listener_port(self) -> int:
@@ -54,13 +56,20 @@ class CoreEngine:
     def declare_option(self, option: str) -> None:
         self._client.declare_option(option)
 
-    def add_query(self, query: str, query_name: str = "") -> int:
+    def add_query(self, query: str, query_name: str = "") -> tuple[int, int]:
+        """Add a query. Returns (query_id, port).
+
+        The port doubles as the result_handler_identifier used by the
+        frontend to open WebSocket subscriptions, so we key
+        _result_queues by port so that subscribe_client(port) finds
+        the right queue.
+        """
         port = self._client.add_query(query)
         query_id = self._next_query_id
         self._next_query_id += 1
-        self._result_queues[query_id] = []
+        self._result_queues[port] = []
 
-        handler = self._create_result_handler(query_id)
+        handler = self._create_result_handler(port)
         self._subscriptions[query_id] = QuerySubscription(
             query_id=query_id,
             port=port,
@@ -69,10 +78,18 @@ class CoreEngine:
             handler=handler,
         )
         self._client.subscribe_to_complex_event(handler, port)
-        return query_id
+        return query_id, port
 
     def inactivate_query(self, query_id: int) -> None:
         self._client.inactivate_query(query_id)
+
+    def _rebuild_event_mappings(self) -> None:
+        """Rebuild event_type_id → stream_id and event_type_id → event_name mappings."""
+        streams = self._client.list_all_streams()
+        for s in streams:
+            for e in s.events_info:
+                self._event_to_stream[e.id] = s.id
+                self._event_to_name[e.id] = e.name
 
     def list_all_streams(self) -> list[dict]:
         """Return stream info in the format the frontend expects."""
@@ -81,6 +98,8 @@ class CoreEngine:
         for s in streams:
             events = []
             for e in s.events_info:
+                self._event_to_stream[e.id] = s.id
+                self._event_to_name[e.id] = e.name
                 attrs = [{"name": a.name, "value_type": a.value_type.value} for a in e.attributes_info]
                 events.append({"id": e.id, "name": e.name, "attributes_info": attrs})
             result.append({"id": s.id, "name": s.name, "events_info": events})
@@ -131,19 +150,27 @@ class CoreEngine:
 
         return pycer.PyQueryResultHandler(on_result)
 
-    @staticmethod
-    def _enumerator_to_json(enumerator: pycer.PyEnumerator) -> list[dict]:
-        """Convert enumerator to the JSON format the frontend expects."""
+    def _enumerator_to_json(self, enumerator: pycer.PyEnumerator) -> list[dict]:
+        """Convert enumerator to the JSON format the frontend expects.
+
+        The C++ convert_enumerator now resolves variable names from the
+        marked_variables bitset and applies attribute projections, so each
+        Event already carries its variable_name and projected attributes.
+        """
         results = []
         for ce in enumerator:
             events_list = []
             for event in ce.events:
+                event_type_id = event.get_event_type_id()
+                event_key = event.variable_name or self._event_to_name.get(
+                    event_type_id, str(event_type_id)
+                )
                 event_data = {
-                    "event_type_id": event.get_event_type_id(),
-                    "stream_type_id": 0,
+                    "event_type_id": event_type_id,
+                    "stream_type_id": self._event_to_stream.get(event_type_id, 0),
                     "attributes": event.get_attributes_as_list(),
                 }
-                events_list.append({str(event.get_event_type_id()): event_data})
+                events_list.append({event_key: event_data})
             results.append({
                 "start": ce.start,
                 "end": ce.end,

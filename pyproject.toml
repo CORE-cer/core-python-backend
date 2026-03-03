@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "websockets>=15.0.0",
     "aiosqlite>=0.21.0",
+    "pydantic>=2.0.0",
     "pycer",
 ]
 

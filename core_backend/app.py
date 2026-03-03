@@ -6,6 +6,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
+import pycer
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,6 +15,8 @@ from .engine import CoreEngine
 from .routes.queries import init_query_routes, router as query_router
 from .routes.streams import init_stream_routes, router as stream_router
 from .routes.websocket import init_websocket_routes, router as ws_router
+from .streamers.bluesky.create_post import CreatePostStreamer
+from .streamers.coinbase.ticker import TickerStreamer
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +43,45 @@ async def lifespan(app: FastAPI):
     init_stream_routes(engine)
     init_websocket_routes(engine)
 
+    # Start data streamers
+    streamer_client = pycer.PyClient("tcp://localhost", router_port)
+    py_streamer = pycer.PyStreamer("tcp://localhost", stream_listener_port)
+
+    streamers = [
+        TickerStreamer(streamer_client, py_streamer),
+        CreatePostStreamer(streamer_client, py_streamer),
+    ]
+
+    async def run_streamer(streamer):
+        try:
+            await streamer.start()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Streamer %s crashed", streamer.name)
+
+    streamer_tasks = []
+    for s in streamers:
+        task = asyncio.create_task(run_streamer(s), name=f"streamer-{s.name}")
+        streamer_tasks.append(task)
+
+    # Let streamers declare their streams, then build event mappings
+    await asyncio.sleep(1)
+    engine._rebuild_event_mappings()
+
     logger.info(
-        "CORE engine started — router=%d, stream_listener=%d",
+        "CORE engine started — router=%d, stream_listener=%d, streamers=%d",
         router_port,
         stream_listener_port,
+        len(streamers),
     )
 
     yield
+
+    # Cancel streamer tasks
+    for task in streamer_tasks:
+        task.cancel()
+    await asyncio.gather(*streamer_tasks, return_exceptions=True)
 
     await close_db()
     engine = None

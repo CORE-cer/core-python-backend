@@ -30,12 +30,13 @@ async def get_queries():
 
     for q in queries:
         cursor = await db.execute(
-            "SELECT query_text FROM queries WHERE id = ?",
+            "SELECT query_text, query_name FROM queries WHERE id = ?",
             (q["result_handler_identifier"],),
         )
         stored = await cursor.fetchone()
         if stored:
             q["query_string"] = stored["query_text"]
+            q["query_name"] = stored["query_name"]
 
     return queries
 
@@ -44,14 +45,14 @@ async def get_queries():
 async def add_query(body: CreateQueryRequest):
     """Add a query to the CORE engine and track it in SQLite."""
     try:
-        query_id = _engine.add_query(body.query, body.query_name)
+        query_id, port = _engine.add_query(body.query, body.query_name)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     db = await get_db()
     await db.execute(
-        "INSERT OR REPLACE INTO queries (id, query_text) VALUES (?, ?)",
-        (query_id, body.query),
+        "INSERT OR REPLACE INTO queries (id, query_text, query_name) VALUES (?, ?, ?)",
+        (port, body.query, body.query_name),
     )
     await db.commit()
 
