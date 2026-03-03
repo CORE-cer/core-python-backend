@@ -1,0 +1,18 @@
+[project]
+name = "core-backend"
+version = "0.1.0"
+description = "CORE Python Backend — FastAPI server replacing NestJS middleware"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "websockets>=15.0.0",
+    "aiosqlite>=0.21.0",
+    "pycer",
+]
+
+[project.scripts]
+core-backend = "core_backend.__main__:main"
+
+[tool.uv.sources]
+pycer = { path = "../CORE", editable = true }
