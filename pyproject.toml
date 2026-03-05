@@ -9,11 +9,10 @@ dependencies = [
     "websockets>=15.0.0",
     "aiosqlite>=0.21.0",
     "pydantic>=2.0.0",
-    "pycer",
+    "pycer==0.1.0",
 ]
 
 [project.scripts]
 core-backend = "core_backend.__main__:main"
 
 [tool.uv.sources]
-pycer = { path = "../CORE", editable = true }
