@@ -32,59 +32,61 @@ async def lifespan(app: FastAPI):
 
     await init_db()
 
-    engine = CoreEngine(
+    with CoreEngine(
         router_port=router_port,
         stream_listener_port=stream_listener_port,
         starting_query_port=starting_query_port,
-    )
-    engine.set_event_loop(asyncio.get_running_loop())
+    ) as eng:
+        engine = eng
+        engine.set_event_loop(asyncio.get_running_loop())
 
-    init_query_routes(engine)
-    init_stream_routes(engine)
-    init_websocket_routes(engine)
+        init_query_routes(engine)
+        init_stream_routes(engine)
+        init_websocket_routes(engine)
 
-    # Start data streamers
-    streamer_client = pycer.PyClient("tcp://localhost", router_port)
-    py_streamer = pycer.PyStreamer("tcp://localhost", stream_listener_port)
+        # Start data streamers
+        with (
+            pycer.PyClient("tcp://localhost", router_port) as streamer_client,
+            pycer.PyStreamer("tcp://localhost", stream_listener_port) as py_streamer,
+        ):
+            streamers = [
+                TickerStreamer(streamer_client, py_streamer),
+                CreatePostStreamer(streamer_client, py_streamer),
+            ]
 
-    streamers = [
-        TickerStreamer(streamer_client, py_streamer),
-        CreatePostStreamer(streamer_client, py_streamer),
-    ]
+            async def run_streamer(streamer):
+                try:
+                    await streamer.start()
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    logger.exception("Streamer %s crashed", streamer.name)
 
-    async def run_streamer(streamer):
-        try:
-            await streamer.start()
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            logger.exception("Streamer %s crashed", streamer.name)
+            streamer_tasks = []
+            for s in streamers:
+                task = asyncio.create_task(run_streamer(s), name=f"streamer-{s.name}")
+                streamer_tasks.append(task)
 
-    streamer_tasks = []
-    for s in streamers:
-        task = asyncio.create_task(run_streamer(s), name=f"streamer-{s.name}")
-        streamer_tasks.append(task)
+            # Let streamers declare their streams, then build event mappings
+            await asyncio.sleep(1)
+            engine._rebuild_event_mappings()
 
-    # Let streamers declare their streams, then build event mappings
-    await asyncio.sleep(1)
-    engine._rebuild_event_mappings()
+            logger.info(
+                "CORE engine started — router=%d, stream_listener=%d, streamers=%d",
+                router_port,
+                stream_listener_port,
+                len(streamers),
+            )
 
-    logger.info(
-        "CORE engine started — router=%d, stream_listener=%d, streamers=%d",
-        router_port,
-        stream_listener_port,
-        len(streamers),
-    )
+            yield
 
-    yield
+            # Cancel streamer tasks
+            for task in streamer_tasks:
+                task.cancel()
+            await asyncio.gather(*streamer_tasks, return_exceptions=True)
 
-    # Cancel streamer tasks
-    for task in streamer_tasks:
-        task.cancel()
-    await asyncio.gather(*streamer_tasks, return_exceptions=True)
-
-    await close_db()
-    engine = None
+        await close_db()
+        engine = None
 
 
 app = FastAPI(lifespan=lifespan)
