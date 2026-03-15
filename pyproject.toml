@@ -9,7 +9,7 @@ dependencies = [
     "websockets>=15.0.0",
     "aiosqlite>=0.21.0",
     "pydantic>=2.0.0",
-    "pycer==0.1.2",
+    "pycer==0.1.3",
 ]
 
 [project.scripts]
