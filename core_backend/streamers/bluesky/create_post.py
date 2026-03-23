@@ -16,7 +16,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
     def stream_declaration(self) -> str:
         return """
         CREATE STREAM Bluesky {
-            EVENT CreatePost {
+            EVENT Post {
                 did: string,
                 kind: string,
                 time: primary_time,
@@ -27,7 +27,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
                 langs: string,
                 text: string
             },
-            EVENT CreateFollow {
+            EVENT Follow {
                 did: string,
                 kind: string,
                 time: primary_time,
@@ -37,7 +37,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
                 record_type: string,
                 subject: string
             },
-            EVENT CreateLike {
+            EVENT Like {
                 did: string,
                 kind: string,
                 time: primary_time,
@@ -48,7 +48,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
                 subject_cid: string,
                 subject_uri: string
             },
-            EVENT CreateRepost {
+            EVENT Repost {
                 did: string,
                 kind: string,
                 time: primary_time,
@@ -89,10 +89,10 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
 
     def get_event_id_from_model(self, model: CommitWrapperEventModel) -> int:
         event_dict = {
-            "app.bsky.feed.post": "CreatePost",
-            "app.bsky.graph.follow": "CreateFollow",
-            "app.bsky.feed.like": "CreateLike",
-            "app.bsky.feed.repost": "CreateRepost",
+            "app.bsky.feed.post": "Post",
+            "app.bsky.graph.follow": "Follow",
+            "app.bsky.feed.like": "Like",
+            "app.bsky.feed.repost": "Repost",
         }
         event_name = event_dict.get(model.commit.record.record_type)
         assert event_name is not None, f"Unknown record type: {model.commit.record.record_type}"
