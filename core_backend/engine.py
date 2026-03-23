@@ -87,6 +87,9 @@ class CoreEngine:
 
     def inactivate_query(self, query_id: int) -> None:
         self._client.inactivate_query(query_id)
+        sub = self._subscriptions.pop(query_id, None)
+        if sub and sub.port in self._result_queues:
+            del self._result_queues[sub.port]
 
     def _rebuild_event_mappings(self) -> None:
         """Rebuild event_type_id → stream_id and event_type_id → event_name mappings."""
@@ -113,10 +116,13 @@ class CoreEngine:
     def list_all_queries(self) -> list[dict]:
         """Return query info in the format the frontend expects."""
         queries = self._client.list_all_queries()
+        port_to_qid = {sub.port: sub.query_id for sub in self._subscriptions.values()}
         result = []
         for q in queries:
+            port = int(q.result_handler_identifier)
             result.append({
-                "result_handler_identifier": q.result_handler_identifier,
+                "query_id": port_to_qid.get(port),
+                "result_handler_identifier": port,
                 "result_handler_type": q.result_handler_type.value,
                 "query_string": q.query_string,
                 "query_name": q.query_name,
@@ -128,17 +134,21 @@ class CoreEngine:
 
     def subscribe_client(self, query_id: int) -> asyncio.Queue:
         """Register a WebSocket client to receive results for a query."""
+        sub = self._subscriptions.get(query_id)
+        port = sub.port if sub else query_id
         queue: asyncio.Queue = asyncio.Queue()
-        if query_id not in self._result_queues:
-            self._result_queues[query_id] = []
-        self._result_queues[query_id].append(queue)
+        if port not in self._result_queues:
+            self._result_queues[port] = []
+        self._result_queues[port].append(queue)
         return queue
 
     def unsubscribe_client(self, query_id: int, queue: asyncio.Queue) -> None:
         """Unregister a WebSocket client."""
-        if query_id in self._result_queues:
+        sub = self._subscriptions.get(query_id)
+        port = sub.port if sub else query_id
+        if port in self._result_queues:
             try:
-                self._result_queues[query_id].remove(queue)
+                self._result_queues[port].remove(queue)
             except ValueError:
                 pass
 
