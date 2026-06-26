@@ -1,7 +1,8 @@
 import json
-from typing import Optional, final
+from typing import final
 
 import pycer
+
 from ..abstract_streamer_websocket import AbstractStreamerWebsocket
 from .models.ticker import TickerModel, subscription_message
 
@@ -26,7 +27,7 @@ class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
                 """
 
     @property
-    def option_declaration(self) -> Optional[str]:
+    def option_declaration(self) -> str | None:
         return """
                     CREATE QUARANTINE
                     { \n
@@ -65,9 +66,19 @@ class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
         last_size = pycer.PyDoubleValue(model.last_size)
         time = pycer.PyIntValue(int(model.time.timestamp() * 1e9))
         attributes = [
-            product_id, price, open_24h, volume_24h, low_24h,
-            high_24h, volume_30d, best_bid, best_bid_size, best_ask,
-            best_ask_size, last_size, time,
+            product_id,
+            price,
+            open_24h,
+            volume_24h,
+            low_24h,
+            high_24h,
+            volume_30d,
+            best_bid,
+            best_bid_size,
+            best_ask,
+            best_ask_size,
+            last_size,
+            time,
         ]
         event_id = self.get_event_id_from_model(model)
         event = pycer.PyEvent(event_id, attributes, time)

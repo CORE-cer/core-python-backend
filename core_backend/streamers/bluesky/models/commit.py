@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class RecordSubjectModel(BaseModel):
 class PostRecordModel(BaseModel):
     record_type: Literal["app.bsky.feed.post"] = Field(alias="$type")
     createdAt: datetime.datetime
-    langs: List[str]
+    langs: list[str]
     text: str
 
 
@@ -37,9 +37,9 @@ class RepostRecordModel(BaseModel):
 class CommitEventModel(BaseModel):
     cid: str
     operation: Literal["create"]
-    record: (
-        PostRecordModel | FollowRecordModel | LikeRecordModel | RepostRecordModel
-    ) = Field(discriminator="record_type")
+    record: PostRecordModel | FollowRecordModel | LikeRecordModel | RepostRecordModel = Field(
+        discriminator="record_type"
+    )
 
 
 class CommitWrapperEventModel(BaseModel):
@@ -47,6 +47,4 @@ class CommitWrapperEventModel(BaseModel):
     kind: Literal["commit"]
     time_us: int
     commit: CommitEventModel
-    received_time: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
-    )
+    received_time: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))

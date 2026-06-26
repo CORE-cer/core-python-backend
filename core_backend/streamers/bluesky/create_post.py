@@ -1,7 +1,8 @@
 import json
-from typing import Optional, final
+from typing import final
 
 import pycer
+
 from ..abstract_streamer_websocket import AbstractStreamerWebsocket
 from .models.commit import CommitWrapperEventModel
 
@@ -63,7 +64,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
         """
 
     @property
-    def option_declaration(self) -> Optional[str]:
+    def option_declaration(self) -> str | None:
         return """
                     CREATE QUARANTINE
                     { \n
@@ -79,7 +80,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
     def subscribe_message_json(self) -> str:
         return ""
 
-    def parse_message_json(self, message: str) -> Optional[CommitWrapperEventModel]:
+    def parse_message_json(self, message: str) -> CommitWrapperEventModel | None:
         try:
             message_json = json.loads(message)
             model = CommitWrapperEventModel.model_validate(message_json)

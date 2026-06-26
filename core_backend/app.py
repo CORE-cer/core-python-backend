@@ -12,9 +12,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import close_db, init_db
 from .engine import CoreEngine
-from .routes.queries import init_query_routes, router as query_router
-from .routes.streams import init_stream_routes, router as stream_router
-from .routes.websocket import init_websocket_routes, router as ws_router
+from .routes.queries import init_query_routes
+from .routes.queries import router as query_router
+from .routes.streams import init_stream_routes
+from .routes.streams import router as stream_router
+from .routes.websocket import init_websocket_routes
+from .routes.websocket import router as ws_router
 from .streamers.bluesky.create_post import CreatePostStreamer
 from .streamers.coinbase.ticker import TickerStreamer
 

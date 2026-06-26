@@ -1,7 +1,7 @@
 import time
-from collections import deque
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from collections import deque
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
@@ -19,7 +19,7 @@ class AbstractStreamer(ABC, Generic[T]):
     def __init__(self, py_client, py_streamer):
         self.py_client = py_client
         self.py_streamer = py_streamer
-        self.event_name_to_unique_id: Dict[str, int] = {}
+        self.event_name_to_unique_id: dict[str, int] = {}
         self._event_count: int = 0
         self._last_event_time: float | None = None
         self._event_timestamps: deque[float] = deque()
@@ -46,11 +46,11 @@ class AbstractStreamer(ABC, Generic[T]):
         pass
 
     @property
-    def option_declaration(self) -> Optional[str]:
+    def option_declaration(self) -> str | None:
         return None
 
     @abstractmethod
-    def parse_message_json(self, message: str) -> Optional[T]:
+    def parse_message_json(self, message: str) -> T | None:
         pass
 
     @abstractmethod

@@ -120,16 +120,18 @@ class CoreEngine:
         result = []
         for q in queries:
             port = int(q.result_handler_identifier)
-            result.append({
-                "query_id": port_to_qid.get(port),
-                "result_handler_identifier": port,
-                "result_handler_type": q.result_handler_type.value,
-                "query_string": q.query_string,
-                "query_name": q.query_name,
-                "active": q.active,
-                "attribute_projection_stream_event": q.get_attribute_projection_stream_event(),
-                "attribute_projection_variable": dict(q.attribute_projection_variable),
-            })
+            result.append(
+                {
+                    "query_id": port_to_qid.get(port),
+                    "result_handler_identifier": port,
+                    "result_handler_type": q.result_handler_type.value,
+                    "query_string": q.query_string,
+                    "query_name": q.query_name,
+                    "active": q.active,
+                    "attribute_projection_stream_event": q.get_attribute_projection_stream_event(),
+                    "attribute_projection_variable": dict(q.attribute_projection_variable),
+                }
+            )
         return result
 
     def subscribe_client(self, query_id: int) -> asyncio.Queue:
@@ -177,18 +179,18 @@ class CoreEngine:
             events_list = []
             for event in ce.events:
                 event_type_id = event.get_event_type_id()
-                event_key = event.variable_name or self._event_to_name.get(
-                    event_type_id, str(event_type_id)
-                )
+                event_key = event.variable_name or self._event_to_name.get(event_type_id, str(event_type_id))
                 event_data = {
                     "event_type_id": event_type_id,
                     "stream_type_id": self._event_to_stream.get(event_type_id, 0),
                     "attributes": event.get_attributes_as_list(),
                 }
                 events_list.append({event_key: event_data})
-            results.append({
-                "start": ce.start,
-                "end": ce.end,
-                "events": events_list,
-            })
+            results.append(
+                {
+                    "start": ce.start,
+                    "end": ce.end,
+                    "events": events_list,
+                }
+            )
         return results
