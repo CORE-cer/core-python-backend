@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import pycer
 
@@ -36,7 +37,7 @@ class CoreEngine:
         self._client = pycer.PyClient("tcp://localhost", router_port)
         self._subscriptions: dict[int, QuerySubscription] = {}
         self._next_query_id: int = 0
-        self._result_queues: dict[int, list[asyncio.Queue]] = {}
+        self._result_queues: dict[int, list[asyncio.Queue[list[dict[str, Any]]]]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
         self._event_to_stream: dict[int, int] = {}
         self._event_to_name: dict[int, str] = {}
@@ -44,7 +45,7 @@ class CoreEngine:
     def __enter__(self):
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: object) -> None:
         self._client.shutdown()
         self._server.shutdown()
 
@@ -91,7 +92,7 @@ class CoreEngine:
         if sub and sub.port in self._result_queues:
             del self._result_queues[sub.port]
 
-    def _rebuild_event_mappings(self) -> None:
+    def rebuild_event_mappings(self) -> None:
         """Rebuild event_type_id → stream_id and event_type_id → event_name mappings."""
         streams = self._client.list_all_streams()
         for s in streams:
@@ -99,7 +100,7 @@ class CoreEngine:
                 self._event_to_stream[e.id] = s.id
                 self._event_to_name[e.id] = e.name
 
-    def list_all_streams(self) -> list[dict]:
+    def list_all_streams(self) -> list[dict[str, Any]]:
         """Return stream info in the format the frontend expects."""
         streams = self._client.list_all_streams()
         result = []
@@ -113,7 +114,7 @@ class CoreEngine:
             result.append({"id": s.id, "name": s.name, "events_info": events})
         return result
 
-    def list_all_queries(self) -> list[dict]:
+    def list_all_queries(self) -> list[dict[str, Any]]:
         """Return query info in the format the frontend expects."""
         queries = self._client.list_all_queries()
         port_to_qid = {sub.port: sub.query_id for sub in self._subscriptions.values()}
@@ -134,17 +135,17 @@ class CoreEngine:
             )
         return result
 
-    def subscribe_client(self, query_id: int) -> asyncio.Queue:
+    def subscribe_client(self, query_id: int) -> asyncio.Queue[list[dict[str, Any]]]:
         """Register a WebSocket client to receive results for a query."""
         sub = self._subscriptions.get(query_id)
         port = sub.port if sub else query_id
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue[list[dict[str, Any]]] = asyncio.Queue()
         if port not in self._result_queues:
             self._result_queues[port] = []
         self._result_queues[port].append(queue)
         return queue
 
-    def unsubscribe_client(self, query_id: int, queue: asyncio.Queue) -> None:
+    def unsubscribe_client(self, query_id: int, queue: asyncio.Queue[list[dict[str, Any]]]) -> None:
         """Unregister a WebSocket client."""
         sub = self._subscriptions.get(query_id)
         port = sub.port if sub else query_id
@@ -167,7 +168,7 @@ class CoreEngine:
 
         return on_result
 
-    def _enumerator_to_json(self, enumerator: pycer.PyEnumerator) -> list[dict]:
+    def _enumerator_to_json(self, enumerator: pycer.PyEnumerator) -> list[dict[str, Any]]:
         """Convert enumerator to the JSON format the frontend expects.
 
         The C++ convert_enumerator now resolves variable names from the

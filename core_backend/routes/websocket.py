@@ -24,6 +24,7 @@ def init_websocket_routes(engine: CoreEngine) -> None:
 
 @router.websocket("/{query_id}")
 async def websocket_endpoint(websocket: WebSocket, query_id: int):
+    assert _engine is not None
     await websocket.accept()
     queue = _engine.subscribe_client(query_id)
     try:

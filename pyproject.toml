@@ -36,9 +36,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501", "B904", "SIM105", "UP046"]
 
 [tool.basedpyright]
-typeCheckingMode = "standard"
-reportOptionalMemberAccess = false
-reportMissingTypeArgument = false
+typeCheckingMode = "strict"
 reportImplicitOverride = false
-reportAttributeAccessIssue = false
-reportArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownArgumentType = false

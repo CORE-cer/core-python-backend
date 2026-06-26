@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
+from core_backend.streamers.abstract_streamer import AbstractStreamer
+
 if TYPE_CHECKING:
     from core_backend.engine import CoreEngine
-    from core_backend.streamers.abstract_streamer import AbstractStreamer
 
 router = APIRouter()
 
 _engine: CoreEngine | None = None
-_streamers: list[AbstractStreamer] = []
+_streamers: Sequence[AbstractStreamer[Any]] = []
 
 
-def init_stream_routes(engine: CoreEngine, streamers: list[AbstractStreamer] | None = None) -> None:
+def init_stream_routes(engine: CoreEngine, streamers: Sequence[AbstractStreamer[Any]] | None = None) -> None:
     global _engine, _streamers
     _engine = engine
     if streamers is not None:
@@ -26,6 +28,7 @@ def init_stream_routes(engine: CoreEngine, streamers: list[AbstractStreamer] | N
 
 @router.get("/stream")
 async def get_streams():
+    assert _engine is not None
     return _engine.list_all_streams()
 
 
@@ -37,6 +40,7 @@ async def get_stream_stats():
 @router.post("/declare-stream")
 async def declare_stream(request: Request):
     """Declare a stream in the CORE engine. Used by data streamers."""
+    assert _engine is not None
     body = await request.json()
     declaration = body.get("declaration", "")
     try:
@@ -53,6 +57,7 @@ async def declare_stream(request: Request):
 @router.post("/declare-option")
 async def declare_option(request: Request):
     """Declare an option in the CORE engine. Used by data streamers."""
+    assert _engine is not None
     body = await request.json()
     option = body.get("option", "")
     try:

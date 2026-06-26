@@ -16,7 +16,7 @@ class AbstractStreamer(ABC, Generic[T]):
     Base class for all streamers.
     """
 
-    def __init__(self, py_client, py_streamer):
+    def __init__(self, py_client: Any, py_streamer: Any) -> None:
         self.py_client = py_client
         self.py_streamer = py_streamer
         self.event_name_to_unique_id: dict[str, int] = {}
@@ -30,7 +30,7 @@ class AbstractStreamer(ABC, Generic[T]):
     def __str__(self):
         return self.name
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, AbstractStreamer):
             return self.name == other.name
         return False
@@ -72,7 +72,7 @@ class AbstractStreamer(ABC, Generic[T]):
         self._last_event_time = now
         self._event_timestamps.append(now)
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         now = time.monotonic()
         cutoff = now - RATE_WINDOW_SECONDS
         while self._event_timestamps and self._event_timestamps[0] < cutoff:
