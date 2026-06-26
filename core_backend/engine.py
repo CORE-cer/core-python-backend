@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import pycer
 
@@ -103,9 +103,9 @@ class CoreEngine:
     def list_all_streams(self) -> list[dict[str, Any]]:
         """Return stream info in the format the frontend expects."""
         streams = self._client.list_all_streams()
-        result = []
+        result: list[dict[str, Any]] = []
         for s in streams:
-            events = []
+            events: list[dict[str, Any]] = []
             for e in s.events_info:
                 self._event_to_stream[e.id] = s.id
                 self._event_to_name[e.id] = e.name
@@ -118,9 +118,10 @@ class CoreEngine:
         """Return query info in the format the frontend expects."""
         queries = self._client.list_all_queries()
         port_to_qid = {sub.port: sub.query_id for sub in self._subscriptions.values()}
-        result = []
+        result: list[dict[str, Any]] = []
         for q in queries:
             port = int(q.result_handler_identifier)
+            projection = cast(list[Any], q.get_attribute_projection_stream_event())  # pyright: ignore[reportUnknownMemberType] - untyped in pycer stubs
             result.append(
                 {
                     "query_id": port_to_qid.get(port),
@@ -129,7 +130,7 @@ class CoreEngine:
                     "query_string": q.query_string,
                     "query_name": q.query_name,
                     "active": q.active,
-                    "attribute_projection_stream_event": q.get_attribute_projection_stream_event(),
+                    "attribute_projection_stream_event": projection,
                     "attribute_projection_variable": dict(q.attribute_projection_variable),
                 }
             )
@@ -175,16 +176,17 @@ class CoreEngine:
         marked_variables bitset and applies attribute projections, so each
         Event already carries its variable_name and projected attributes.
         """
-        results = []
+        results: list[dict[str, Any]] = []
         for ce in enumerator:
-            events_list = []
+            events_list: list[dict[str, Any]] = []
             for event in ce.events:
                 event_type_id = event.get_event_type_id()
                 event_key = event.variable_name or self._event_to_name.get(event_type_id, str(event_type_id))
-                event_data = {
+                attributes = cast(list[Any], event.get_attributes_as_list())  # pyright: ignore[reportUnknownMemberType] - untyped in pycer stubs
+                event_data: dict[str, Any] = {
                     "event_type_id": event_type_id,
                     "stream_type_id": self._event_to_stream.get(event_type_id, 0),
-                    "attributes": event.get_attributes_as_list(),
+                    "attributes": attributes,
                 }
                 events_list.append({event_key: event_data})
             results.append(

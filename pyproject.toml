@@ -37,8 +37,3 @@ ignore = ["E501", "B904", "SIM105", "UP046"]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-reportImplicitOverride = false
-reportUnknownVariableType = false
-reportUnknownMemberType = false
-reportUnknownParameterType = false
-reportUnknownArgumentType = false

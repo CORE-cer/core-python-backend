@@ -1,6 +1,6 @@
 import asyncio
 from abc import abstractmethod
-from typing import TypeVar
+from typing import TypeVar, override
 
 import websockets
 from pydantic import BaseModel
@@ -21,6 +21,7 @@ class AbstractStreamerWebsocket(AbstractStreamer[T]):
     def subscribe_message_json(self) -> str:
         pass
 
+    @override
     async def setup_and_receive(self, stream_id: int):
         while True:
             try:

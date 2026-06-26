@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
                 except Exception:
                     logger.exception("Streamer %s crashed", streamer.name)
 
-            streamer_tasks = []
+            streamer_tasks: list[asyncio.Task[None]] = []
             for s in streamers:
                 task = asyncio.create_task(run_streamer(s), name=f"streamer-{s.name}")
                 streamer_tasks.append(task)

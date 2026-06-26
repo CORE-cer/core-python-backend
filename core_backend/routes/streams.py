@@ -45,9 +45,11 @@ async def declare_stream(request: Request):
     declaration = body.get("declaration", "")
     try:
         stream_info = _engine.declare_stream(declaration)
-        events = []
+        events: list[dict[str, Any]] = []
         for e in stream_info.events_info:
-            attrs = [{"name": a.name, "value_type": a.value_type.value} for a in e.attributes_info]
+            attrs: list[dict[str, Any]] = [
+                {"name": a.name, "value_type": a.value_type.value} for a in e.attributes_info
+            ]
             events.append({"id": e.id, "name": e.name, "attributes_info": attrs})
         return {"id": stream_info.id, "name": stream_info.name, "events_info": events}
     except Exception as e:

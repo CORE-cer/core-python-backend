@@ -1,5 +1,5 @@
 import json
-from typing import final
+from typing import final, override
 
 import pycer
 
@@ -10,10 +10,12 @@ from .models.ticker import TickerModel, subscription_message
 @final
 class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
     @property
+    @override
     def name(self) -> str:
         return "coinbase"
 
     @property
+    @override
     def stream_declaration(self) -> str:
         return """CREATE STREAM TICKER
                 { \n
@@ -27,6 +29,7 @@ class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
                 """
 
     @property
+    @override
     def option_declaration(self) -> str | None:
         return """
                     CREATE QUARANTINE
@@ -36,21 +39,26 @@ class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
                     """
 
     @property
+    @override
     def URI(self) -> str:
         return "wss://ws-feed.exchange.coinbase.com"
 
     @property
+    @override
     def subscribe_message_json(self) -> str:
         return json.dumps(subscription_message)
 
+    @override
     def parse_message_json(self, message: str) -> TickerModel:
         return TickerModel.model_validate_json(message)
 
+    @override
     def get_event_id_from_model(self, model: TickerModel) -> int:
         event_id = self.event_name_to_unique_id.get(model.side.capitalize())
         assert event_id is not None, f"Unknown side: {model.side}"
         return event_id
 
+    @override
     def create_event(self, model: TickerModel):
         product_id = pycer.PyStringValue(model.product_id)
         price = pycer.PyDoubleValue(model.price)
