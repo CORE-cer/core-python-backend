@@ -1,28 +1,37 @@
-"""Stream routes — list and declare streams."""
+"""Stream routes — list and declare streams, serve live stats."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
 if TYPE_CHECKING:
     from core_backend.engine import CoreEngine
+    from core_backend.streamers.abstract_streamer import AbstractStreamer
 
 router = APIRouter()
 
 _engine: CoreEngine | None = None
+_streamers: list[AbstractStreamer] = []
 
 
-def init_stream_routes(engine: CoreEngine) -> None:
-    global _engine
+def init_stream_routes(engine: CoreEngine, streamers: list[AbstractStreamer] | None = None) -> None:
+    global _engine, _streamers
     _engine = engine
+    if streamers is not None:
+        _streamers = streamers
 
 
 @router.get("/stream")
 async def get_streams():
     return _engine.list_all_streams()
+
+
+@router.get("/stream/stats")
+async def get_stream_stats():
+    return [s.get_stats() for s in _streamers]
 
 
 @router.post("/declare-stream")
