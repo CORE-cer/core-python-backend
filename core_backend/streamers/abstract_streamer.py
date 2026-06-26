@@ -16,11 +16,10 @@ class AbstractStreamer(ABC, Generic[T]):
     Base class for all streamers.
     """
 
-    event_name_to_unique_id: Dict[str, int] = {}
-
     def __init__(self, py_client, py_streamer):
         self.py_client = py_client
         self.py_streamer = py_streamer
+        self.event_name_to_unique_id: Dict[str, int] = {}
         self._event_count: int = 0
         self._last_event_time: float | None = None
         self._event_timestamps: deque[float] = deque()

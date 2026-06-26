@@ -10,7 +10,7 @@ from .models.commit import CommitWrapperEventModel
 class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
     @property
     def name(self) -> str:
-        return "CreatePostStreamer"
+        return "bluesky"
 
     @property
     def stream_declaration(self) -> str:

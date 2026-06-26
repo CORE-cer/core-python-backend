@@ -10,7 +10,7 @@ from .models.ticker import TickerModel, subscription_message
 class TickerStreamer(AbstractStreamerWebsocket[TickerModel]):
     @property
     def name(self) -> str:
-        return "TickerStreamer"
+        return "coinbase"
 
     @property
     def stream_declaration(self) -> str:
