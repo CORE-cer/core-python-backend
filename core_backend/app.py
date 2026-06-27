@@ -46,7 +46,6 @@ async def lifespan(app: FastAPI):
         engine.set_event_loop(asyncio.get_running_loop())
 
         init_query_routes(engine)
-        init_websocket_routes(engine)
 
         # Start data streamers
         with (
@@ -58,6 +57,7 @@ async def lifespan(app: FastAPI):
                 CreatePostStreamer(streamer_client, py_streamer),
             ]
             init_stream_routes(engine, streamers)
+            init_websocket_routes(engine, streamers)
 
             loop = asyncio.get_running_loop()
             for s in streamers:

@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse
 
 from core_backend.streamers.abstract_streamer import AbstractStreamer
 
 if TYPE_CHECKING:
     from core_backend.engine import CoreEngine
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -38,26 +35,6 @@ async def get_streams():
 @router.get("/stream/stats")
 async def get_stream_stats():
     return [s.get_stats() for s in _streamers]
-
-
-@router.websocket("/stream/events/{stream_name}")
-async def stream_events(websocket: WebSocket, stream_name: str):
-    streamer = next((s for s in _streamers if s.name == stream_name), None)
-    if streamer is None:
-        await websocket.close(code=4004, reason=f"Stream '{stream_name}' not found")
-        return
-    await websocket.accept()
-    queue = streamer.subscribe_events()
-    try:
-        while True:
-            event = await queue.get()
-            await websocket.send_json(event)
-    except WebSocketDisconnect:
-        pass
-    except Exception:
-        logger.exception("Stream events WebSocket error for stream=%s", stream_name)
-    finally:
-        streamer.unsubscribe_events(queue)
 
 
 @router.post("/declare-stream")
