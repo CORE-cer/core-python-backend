@@ -1,6 +1,6 @@
 import asyncio
 from abc import abstractmethod
-from typing import TypeVar
+from typing import TypeVar, override
 
 import websockets
 from pydantic import BaseModel
@@ -21,6 +21,7 @@ class AbstractStreamerWebsocket(AbstractStreamer[T]):
     def subscribe_message_json(self) -> str:
         pass
 
+    @override
     async def setup_and_receive(self, stream_id: int):
         while True:
             try:
@@ -35,9 +36,7 @@ class AbstractStreamerWebsocket(AbstractStreamer[T]):
                 print("Connection exception, retrying..: ", e)
                 await asyncio.sleep(1)
 
-    async def receive_loop(
-        self, websocket: websockets.ClientConnection, stream_id: int
-    ):
+    async def receive_loop(self, websocket: websockets.ClientConnection, stream_id: int):
         while True:
             try:
                 async with asyncio.timeout(10):

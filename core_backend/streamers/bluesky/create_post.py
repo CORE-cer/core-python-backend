@@ -1,18 +1,28 @@
 import json
-from typing import Optional, final
+from typing import final, override
 
 import pycer
+
 from ..abstract_streamer_websocket import AbstractStreamerWebsocket
-from .models.commit import CommitWrapperEventModel
+from .models.commit import (
+    CommitWrapperEventModel,
+    FollowRecordModel,
+    LikeRecordModel,
+    PostRecordModel,
+    RecordSubjectModel,
+    RepostRecordModel,
+)
 
 
 @final
 class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
     @property
+    @override
     def name(self) -> str:
-        return "CreatePostStreamer"
+        return "bluesky"
 
     @property
+    @override
     def stream_declaration(self) -> str:
         return """
         CREATE STREAM Bluesky {
@@ -63,7 +73,8 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
         """
 
     @property
-    def option_declaration(self) -> Optional[str]:
+    @override
+    def option_declaration(self) -> str | None:
         return """
                     CREATE QUARANTINE
                     { \n
@@ -72,14 +83,17 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
                     """
 
     @property
+    @override
     def URI(self) -> str:
         return "wss://jetstream2.us-west.bsky.network/subscribe"
 
     @property
+    @override
     def subscribe_message_json(self) -> str:
         return ""
 
-    def parse_message_json(self, message: str) -> Optional[CommitWrapperEventModel]:
+    @override
+    def parse_message_json(self, message: str) -> CommitWrapperEventModel | None:
         try:
             message_json = json.loads(message)
             model = CommitWrapperEventModel.model_validate(message_json)
@@ -87,6 +101,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
         except Exception:
             return None
 
+    @override
     def get_event_id_from_model(self, model: CommitWrapperEventModel) -> int:
         event_dict = {
             "app.bsky.feed.post": "CreatePost",
@@ -111,16 +126,20 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
         return [did, kind, time, time_str, cid, operation, record_type]
 
     def record_subject_attribute(self, model: CommitWrapperEventModel):
+        assert isinstance(model.commit.record, LikeRecordModel | RepostRecordModel)
+        assert isinstance(model.commit.record.subject, RecordSubjectModel)
         subject_cid = pycer.PyStringValue(model.commit.record.subject.cid)
         subject_uri = pycer.PyStringValue(model.commit.record.subject.uri)
         return [subject_cid, subject_uri]
 
     def event_post_attributes(self, model: CommitWrapperEventModel):
+        assert isinstance(model.commit.record, PostRecordModel)
         langs = pycer.PyStringValue(", ".join(model.commit.record.langs))
         text = pycer.PyStringValue(model.commit.record.text)
         return [langs, text]
 
     def event_follow_attributes(self, model: CommitWrapperEventModel):
+        assert isinstance(model.commit.record, FollowRecordModel)
         subject = pycer.PyStringValue(model.commit.record.subject)
         return [subject]
 
@@ -141,6 +160,7 @@ class CreatePostStreamer(AbstractStreamerWebsocket[CommitWrapperEventModel]):
         assert attributes is not None, f"unknown record type: {model.commit.record.record_type}"
         return attributes(model)
 
+    @override
     def create_event(self, model: CommitWrapperEventModel):
         attributes = self.common_event_attributes(model)
         event_attributes = self.get_event_attributes(model)

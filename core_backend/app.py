@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
 import pycer
 from fastapi import FastAPI
@@ -12,9 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import close_db, init_db
 from .engine import CoreEngine
-from .routes.queries import init_query_routes, router as query_router
-from .routes.streams import init_stream_routes, router as stream_router
-from .routes.websocket import init_websocket_routes, router as ws_router
+from .routes.queries import init_query_routes
+from .routes.queries import router as query_router
+from .routes.streams import init_stream_routes
+from .routes.streams import router as stream_router
+from .routes.websocket import init_websocket_routes
+from .routes.websocket import router as ws_router
+from .streamers.abstract_streamer import AbstractStreamer
 from .streamers.bluesky.create_post import CreatePostStreamer
 from .streamers.coinbase.ticker import TickerStreamer
 
@@ -41,7 +46,6 @@ async def lifespan(app: FastAPI):
         engine.set_event_loop(asyncio.get_running_loop())
 
         init_query_routes(engine)
-        init_stream_routes(engine)
         init_websocket_routes(engine)
 
         # Start data streamers
@@ -53,8 +57,13 @@ async def lifespan(app: FastAPI):
                 TickerStreamer(streamer_client, py_streamer),
                 CreatePostStreamer(streamer_client, py_streamer),
             ]
+            init_stream_routes(engine, streamers)
 
-            async def run_streamer(streamer):
+            loop = asyncio.get_running_loop()
+            for s in streamers:
+                s.set_event_loop(loop)
+
+            async def run_streamer(streamer: AbstractStreamer[Any]) -> None:
                 try:
                     await streamer.start()
                 except asyncio.CancelledError:
@@ -62,14 +71,14 @@ async def lifespan(app: FastAPI):
                 except Exception:
                     logger.exception("Streamer %s crashed", streamer.name)
 
-            streamer_tasks = []
+            streamer_tasks: list[asyncio.Task[None]] = []
             for s in streamers:
                 task = asyncio.create_task(run_streamer(s), name=f"streamer-{s.name}")
                 streamer_tasks.append(task)
 
             # Let streamers declare their streams, then build event mappings
             await asyncio.sleep(1)
-            engine._rebuild_event_mappings()
+            engine.rebuild_event_mappings()
 
             logger.info(
                 "CORE engine started — router=%d, stream_listener=%d, streamers=%d",

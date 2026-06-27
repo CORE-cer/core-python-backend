@@ -25,6 +25,7 @@ def init_query_routes(engine: CoreEngine) -> None:
 @router.get("/query")
 async def get_queries():
     """Return all active queries, enriching with stored query_text from DB."""
+    assert _engine is not None
     queries = _engine.list_all_queries()
     db = await get_db()
 
@@ -44,6 +45,7 @@ async def get_queries():
 @router.post("/query")
 async def add_query(body: CreateQueryRequest):
     """Add a query to the CORE engine and track it in SQLite."""
+    assert _engine is not None
     try:
         query_id, port = _engine.add_query(body.query, body.query_name)
     except Exception as e:
@@ -62,6 +64,7 @@ async def add_query(body: CreateQueryRequest):
 @router.delete("/query/{query_id}")
 async def inactivate_query(query_id: int):
     """Inactivate a query in the CORE engine."""
+    assert _engine is not None
     try:
         _engine.inactivate_query(query_id)
     except Exception as e:
