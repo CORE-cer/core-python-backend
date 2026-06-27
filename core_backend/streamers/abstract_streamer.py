@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import time
 from abc import ABC, abstractmethod
 from collections import deque
@@ -6,6 +8,8 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
+
+logger = logging.getLogger(__name__)
 
 RATE_WINDOW_SECONDS = 5
 STALE_THRESHOLD_SECONDS = 10
@@ -23,6 +27,8 @@ class AbstractStreamer(ABC, Generic[T]):
         self._event_count: int = 0
         self._last_event_time: float | None = None
         self._event_timestamps: deque[float] = deque()
+        self._event_queues: list[asyncio.Queue[dict[str, Any]]] = []
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={self.name})"
@@ -61,6 +67,20 @@ class AbstractStreamer(ABC, Generic[T]):
     def create_event(self, model: T) -> Any:
         pass
 
+    def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        self._loop = loop
+
+    def subscribe_events(self) -> asyncio.Queue[dict[str, Any]]:
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._event_queues.append(queue)
+        return queue
+
+    def unsubscribe_events(self, queue: asyncio.Queue[dict[str, Any]]) -> None:
+        try:
+            self._event_queues.remove(queue)
+        except ValueError:
+            pass
+
     def process_message(self, message: str, stream_id: int) -> None:
         model = self.parse_message_json(message)
         if not model:
@@ -71,6 +91,15 @@ class AbstractStreamer(ABC, Generic[T]):
         self._event_count += 1
         self._last_event_time = now
         self._event_timestamps.append(now)
+        if self._loop and self._event_queues:
+            unique_id_to_name = {v: k for k, v in self.event_name_to_unique_id.items()}
+            event_type_id = event.get_event_type_id()
+            event_data: dict[str, Any] = {
+                "event_type": unique_id_to_name.get(event_type_id, str(event_type_id)),
+                "attributes": event.get_attributes_as_list(),
+            }
+            for queue in self._event_queues:
+                self._loop.call_soon_threadsafe(queue.put_nowait, event_data)
 
     def get_stats(self) -> dict[str, Any]:
         now = time.monotonic()

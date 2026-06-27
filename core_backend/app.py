@@ -59,6 +59,10 @@ async def lifespan(app: FastAPI):
             ]
             init_stream_routes(engine, streamers)
 
+            loop = asyncio.get_running_loop()
+            for s in streamers:
+                s.set_event_loop(loop)
+
             async def run_streamer(streamer: AbstractStreamer[Any]) -> None:
                 try:
                     await streamer.start()
