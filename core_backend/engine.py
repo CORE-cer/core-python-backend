@@ -121,7 +121,7 @@ class CoreEngine:
         result: list[dict[str, Any]] = []
         for q in queries:
             port = int(q.result_handler_identifier)
-            projection = q.get_attribute_projection_stream_event()  # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType] - fixed in CORE-cer/CORE#176
+            projection = q.get_attribute_projection_stream_event()
             result.append(
                 {
                     "query_id": port_to_qid.get(port),
@@ -182,7 +182,7 @@ class CoreEngine:
             for event in ce.events:
                 event_type_id = event.get_event_type_id()
                 event_key = event.variable_name or self._event_to_name.get(event_type_id, str(event_type_id))
-                attributes = event.get_attributes_as_list()  # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType] - fixed in CORE-cer/CORE#176
+                attributes = event.get_attributes_as_list()
                 event_data: dict[str, Any] = {
                     "event_type_id": event_type_id,
                     "stream_type_id": self._event_to_stream.get(event_type_id, 0),

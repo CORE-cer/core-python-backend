@@ -97,7 +97,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "pycer", specifier = "==0.1.5" },
+    { name = "pycer", specifier = "==0.1.6" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0" },
     { name = "websockets", specifier = ">=15.0.0" },
@@ -183,10 +183,10 @@ wheels = [
 
 [[package]]
 name = "pycer"
-version = "0.1.5"
+version = "0.1.6"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/dd/18dee512996c2ee23a8bbad12bc236f1dcf7f5f8aa6bbeec240f638ea10e/pycer-0.1.5-cp313-cp313-manylinux_2_34_x86_64.whl", hash = "sha256:d6dc6addfbee49cd222b55de2fe7b3e240dcdd6dd1a4f114cd67221d768cf3cd", size = 14173946, upload-time = "2026-03-18T13:33:35.673Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/c3/c31d2820eaaf451acb1f8ed363437b1a1c315f5383a2b446b8f13738a5dc/pycer-0.1.6-cp313-cp313-manylinux_2_34_x86_64.whl", hash = "sha256:1ed3e183763d1ce0619e118753d4b4687628c0b141eae4c3904f516e6afc2e15", size = 14204491, upload-time = "2026-06-27T18:37:39.98Z" },
 ]
 
 [[package]]
